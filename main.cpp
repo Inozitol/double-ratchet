@@ -49,13 +49,13 @@ int main(int argc, char *argv[]) {
   auto shared_secret = KeyManager::deriveDHSecret(key_pair, {other_pubkey});
 
   if(key_pair.pubKey > other_pubkey.pubKey) {
-    axolotl.init(shared_secret, key_pair);
-    bytes_t init_enc = client.recv();
-    bytes_t init_msg = axolotl.decrypt(init_enc);
-  }else {
     axolotl.init(shared_secret, {other_pubkey});
     bytes_t init_enc = axolotl.encrypt(INIT_MSG);
     client.send(init_enc);
+  }else {
+    axolotl.init(shared_secret, key_pair);
+    bytes_t init_enc = client.recv();
+    bytes_t init_msg = axolotl.decrypt(init_enc);
   }
 
   thr_recv = std::thread([&argv]() {

@@ -15,7 +15,7 @@ public:
  bytes_32_t cycle();
 
  void set_key(const bytes_32_t& key);
- [[nodiscard]] const bytes_32_t& get_key() const;
+ [[nodiscard]] const bytes_32_t& get_mk_key() const;
 
  [[nodiscard]] uint32_t curr_cycle() const;
  [[nodiscard]] uint32_t prev_cycle() const;
@@ -26,6 +26,7 @@ public:
 private:
 
  bytes_32_t m_key{};
+ bytes_32_t m_out{};
  uint32_t m_cycle = 0;
  uint32_t m_prev_cycle = 0;
 };

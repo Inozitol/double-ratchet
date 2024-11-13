@@ -11,6 +11,7 @@ Author: Pavel Horáček
 bytes_32_t KDF::cycle() {
   auto [key, out] = HMAC_pair(m_key);
   m_key = key;
+  m_out = out;
   m_cycle++;
   return out;
 }
@@ -21,7 +22,7 @@ void KDF::set_key(const bytes_32_t &key) {
   m_cycle = 0;
 }
 
-const bytes_32_t &KDF::get_key() const { return m_key; }
+const bytes_32_t &KDF::get_mk_key() const { return m_out; }
 uint32_t KDF::curr_cycle() const {return m_cycle;}
 uint32_t KDF::prev_cycle() const {return m_prev_cycle;}
 

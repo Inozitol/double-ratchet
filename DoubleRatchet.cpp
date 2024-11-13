@@ -14,8 +14,7 @@ void DoubleRatchet::init(const bytes_span_32_t &sk,
   if (key_pair.priKey.empty()) {
     m_self_key_pair = KeyManager::genDHKeys();
     m_other_pub_key = key_pair.pubKey;
-    bytes_32_t derive =
-        KeyManager::deriveDHSecret(m_self_key_pair, key_pair);
+    bytes_32_t derive = KeyManager::deriveDHSecret(m_self_key_pair, key_pair);
     auto [root, send] = KDF::HKDF_pair(sk, derive);
     m_root_key = root;
     m_send_chain.set_key(send);
@@ -30,7 +29,7 @@ bytes_t DoubleRatchet::encrypt(bytes_span_c_t plaintext) {
   m_mutex.lock();
 
   m_send_chain.cycle();
-  bytes_32_t mk = m_send_chain.get_key();
+  bytes_32_t mk = m_send_chain.get_mk_key();
   bytes_t header =
       make_header(m_self_key_pair.pubKey, m_send_chain.prev_cycle(),
                   m_send_chain.curr_cycle()-1);
@@ -62,7 +61,7 @@ bytes_t DoubleRatchet::decrypt(bytes_span_c_t ciphertext_full) {
   skip_messages(msg_cnt);
 
   m_recv_chain.cycle();
-  mk = m_recv_chain.get_key();
+  mk = m_recv_chain.get_mk_key();
 
   m_mutex.unlock();
 
@@ -143,7 +142,7 @@ void DoubleRatchet::skip_messages(uint32_t until) {
   while (m_recv_chain.curr_cycle() < until) {
     m_skipped.insert(std::make_pair(
         std::make_pair(m_other_pub_key, m_recv_chain.curr_cycle()),
-        m_recv_chain.get_key()));
+        m_recv_chain.get_mk_key()));
     m_recv_chain.cycle();
   }
 }
@@ -155,16 +154,15 @@ void DoubleRatchet::dh_ratchet(bytes_span_c_t new_pubkey) {
   std::copy(std::begin(new_pubkey), std::end(new_pubkey),
             std::begin(m_other_pub_key));
 
-  bytes_32_t derive =
-      KeyManager::deriveDHSecret(m_self_key_pair, {m_other_pub_key});
-  auto [rootR, sendR] = KDF::HKDF_pair(m_root_key, derive);
+  bytes_32_t derive = KeyManager::deriveDHSecret(m_self_key_pair, {m_other_pub_key});
+  auto [rootR, recvKey] = KDF::HKDF_pair(m_root_key, derive);
   m_root_key = rootR;
-  m_recv_chain.set_key(sendR);
+  m_recv_chain.set_key(recvKey);
 
   m_self_key_pair = KeyManager::genDHKeys();
 
   derive = KeyManager::deriveDHSecret(m_self_key_pair, {m_other_pub_key});
-  auto [rootS, sendS] = KDF::HKDF_pair(m_root_key, derive);
+  auto [rootS, sendKey] = KDF::HKDF_pair(m_root_key, derive);
   m_root_key = rootS;
-  m_send_chain.set_key(sendS);
+  m_send_chain.set_key(sendKey);
 }
